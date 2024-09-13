@@ -43,7 +43,7 @@
 1) Спотовая пара BTC-USDT на бирже Binance
 2) Перповая пара BTC-USDT на бирже Binance Futures
 
-По каждой паре нужны сделки (trades), а для спота нужны будут также open_interest и
+По каждой паре нужны сделки (trades), а для перпа нужны будут также open_interest и
 funding_rate.
 
 **Orderbook собирать не нужно!**
