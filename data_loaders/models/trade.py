@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import Field,ConfigDict
 
 from data_loaders.models.timedata import TimeData
 
@@ -14,3 +14,5 @@ class Trade(TimeData):
     timestamp: datetime = Field(alias='T', description='Timestamp')
     is_buyer_maker: bool = Field(alias='m', description='Was the buyer the maker?')
     is_best_price_match: bool = Field(False, alias='M', description='Was the trade the best price match?')
+
+    model_config = ConfigDict(populate_by_name=True)

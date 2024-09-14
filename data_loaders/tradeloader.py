@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from time import sleep
 from typing import Iterable, Generic, TypeVar
-
+import tqdm
 import binance
 from binance.exceptions import BinanceAPIException
 
@@ -33,30 +33,54 @@ class Loader(ILoader[TData]):
         self._data_client = data_client
 
     def load(self, start_time: datetime, end_time: datetime) -> Iterable[Trade]:
-        current_timestamp = to_timestamp(start_time)
+        start_timestamp = to_timestamp(start_time)
+        current_timestamp = start_timestamp
         end_timestamp = to_timestamp(end_time)
         current_time = start_time
-        while current_time - end_time < timedelta(seconds=1):
+        with tqdm.tqdm(total=end_timestamp-start_timestamp, desc=f"Processing {data_client.__class__.__name__}", unit="s") as pbar:
+            is_timestamp_changed = True
+
+            yield from self.load_by_timestamp(
+                current_time,
+                current_timestamp,
+                end_time,
+                end_timestamp,
+                is_timestamp_changed,
+                pbar,
+                start_timestamp,
+            )
+
+    def load_by_timestamp(
+        self, current_time: datetime,
+        current_timestamp: int,
+        end_time: datetime,
+        end_timestamp: int,
+        is_timestamp_changed: bool,
+        pbar: tqdm.tqdm,
+        start_timestamp: int,
+    ):
+        while current_time - end_time < timedelta(seconds=1) and is_timestamp_changed:
             try:
                 timed_data = self._data_client.get(
                     symbol='BTCUSDT',
                     start_time=current_timestamp,
                     end_time=end_timestamp,
                 )
-            except BinanceAPIException:
-                logger.exception('Exception, sleeping')
-                sleep(42)
-            except KeyboardInterrupt:
-                break
 
-            is_timestamp_changed = False
-            for i, data in enumerate(timed_data):
-                yield data
+                is_timestamp_changed = False
+                for data in timed_data:
+                    yield data
                 if data.timestamp > current_time:
                     is_timestamp_changed = True
                     current_time = data.timestamp
                     current_timestamp = to_timestamp(current_time)
-            if not is_timestamp_changed:
+                pbar.n = current_timestamp - start_timestamp
+                pbar.refresh()
+
+            except BinanceAPIException:
+                logger.exception('Exception, sleeping')
+                sleep(42)
+            except KeyboardInterrupt:
                 break
 
 
@@ -82,9 +106,9 @@ if __name__ == '__main__':
     funding_rate_client = FundingRateClient(client=client)
 
     # now = datetime.now(timezone.utc)
-    now = datetime(year=2024, month=9, day=13, hour=10, minute=0, second=0, tzinfo=timezone.utc)
+    now = datetime(year=2024, month=9, day=13, hour=17, minute=0, second=0, tzinfo=timezone.utc)
     start = now - timedelta(days=1, hours=10)
-    end = start + timedelta(minutes=120)
+    end = start + timedelta(hours=7)
 
     for data_name, data_client in {
         'spot': spot_client,
@@ -92,7 +116,6 @@ if __name__ == '__main__':
         'open_interest': open_interest_client,
         'funding_rate': funding_rate_client,
     }.items():
-
         loader = Loader(data_client=data_client)
         all_data = (
             loader.load(
