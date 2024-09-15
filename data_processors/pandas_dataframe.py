@@ -64,25 +64,21 @@ class PandasCandleProcessor:
         return pd.DataFrame(data)
 
     def process(self, start_time: datetime, end_time: datetime) -> List[Candle]:
-        # Load data as DataFrames
         spot_df = self._get_data_df(start_time, end_time, self._spot_loader)
         perp_df = self._get_data_df(start_time, end_time, self._perp_loader)
         open_interest_df = self._get_data_df(start_time, end_time, self._open_interest_loader)
         funding_rate_df = self._get_data_df(start_time, end_time, self._funding_rate_loader)
 
-        # Ensure 'timestamp' is datetime and keep it as a column and index
         for df in [spot_df, perp_df]:
             if not df.empty:
                 df['timestamp'] = pd.to_datetime(df['timestamp'])
                 df.set_index('timestamp', inplace=True, drop=False)
 
-        # Handle open_interest_df and funding_rate_df separately
         for df in [open_interest_df, funding_rate_df]:
             if not df.empty:
                 df['timestamp'] = pd.to_datetime(df['timestamp'])
                 df.set_index('timestamp', inplace=True)
 
-        # Define the aggregation function
         def _aggregation(group):
             total_quantity = group['quantity'].sum()
             total_trades = group['trade_id'].nunique()
@@ -93,12 +89,10 @@ class PandasCandleProcessor:
             high_price = group['price'].max()
             low_price = group['price'].min()
 
-            # Buy trades where is_buyer_maker == False (buyer is taker)
             buy_trades = group.loc[~group['is_buyer_maker']]
             buy_volume = buy_trades['quantity'].sum()
             buy_trade_count = buy_trades['trade_id'].nunique()
 
-            # Sell trades where is_buyer_maker == True (seller is taker)
             sell_trades = group.loc[group['is_buyer_maker']]
             sell_volume = sell_trades['quantity'].sum()
             sell_trade_count = sell_trades['trade_id'].nunique()
@@ -119,7 +113,6 @@ class PandasCandleProcessor:
             }
             return pd.Series(result)
 
-        # Resample and aggregate spot data
         if not spot_df.empty:
             spot_resampled = spot_df.resample('5min').apply(_aggregation)
             spot_resampled = spot_resampled.rename(columns={
@@ -139,7 +132,6 @@ class PandasCandleProcessor:
         else:
             spot_resampled = pd.DataFrame()
 
-        # Resample and aggregate perpetual data
         if not perp_df.empty:
             perp_resampled = perp_df.resample('5min').apply(_aggregation)
             perp_resampled = perp_resampled.rename(columns={
@@ -159,37 +151,24 @@ class PandasCandleProcessor:
         else:
             perp_resampled = pd.DataFrame()
 
-        # Resample open interest and funding rate data
         if not open_interest_df.empty:
-            # Select only numeric columns
             numeric_cols_oi = open_interest_df.select_dtypes(include='number').columns
             open_interest_resampled = open_interest_df[numeric_cols_oi].resample('5min').mean()
-            # Rename 'sum_open_interest' to 'open_interest' if present
             if 'sum_open_interest' in open_interest_resampled.columns:
                 open_interest_resampled.rename(columns={'sum_open_interest': 'open_interest'}, inplace=True)
-            else:
-                # If 'open_interest' is already a column, no need to rename
-                pass
         else:
             open_interest_resampled = pd.DataFrame(columns=['timestamp', 'open_interest'])
 
         if not funding_rate_df.empty:
-            # Select only numeric columns
             numeric_cols_fr = funding_rate_df.select_dtypes(include='number').columns
             funding_rate_resampled = funding_rate_df[numeric_cols_fr].resample('5min').mean()
-            # Rename the funding rate column to 'funding_rate' if necessary
             if 'funding_rate_column_name' in funding_rate_resampled.columns:
                 funding_rate_resampled.rename(columns={'funding_rate_column_name': 'funding_rate'}, inplace=True)
-            else:
-                # If 'funding_rate' is already a column, no need to rename
-                pass
         else:
             funding_rate_resampled = pd.DataFrame(columns=['timestamp', 'funding_rate'])
 
-        # Combine spot and perp data
         combined_df = spot_resampled.join(perp_resampled, how='outer')
 
-        # Calculate total volumes and trades
         combined_df['volume_total'] = combined_df[['volume_spot', 'volume_perp']].sum(axis=1, skipna=True)
         combined_df['buy_volume_total'] = combined_df[['buy_volume_spot', 'buy_volume_perp']].sum(axis=1, skipna=True)
         combined_df['sell_volume_total'] = combined_df[['sell_volume_spot', 'sell_volume_perp']].sum(axis=1, skipna=True)
@@ -197,44 +176,18 @@ class PandasCandleProcessor:
         combined_df['buy_trades_total'] = combined_df[['buy_trades_spot', 'buy_trades_perp']].sum(axis=1, skipna=True)
         combined_df['sell_trades_total'] = combined_df[['sell_trades_spot', 'sell_trades_perp']].sum(axis=1, skipna=True)
 
-        # Combine open timestamps and close timestamps
         combined_df['open_timestamp'] = combined_df[['open_timestamp_spot', 'open_timestamp_perp']].min(axis=1)
         combined_df['close_timestamp'] = combined_df[['close_timestamp_spot', 'close_timestamp_perp']].max(axis=1)
 
-        # Join open interest and funding rate data
         if not open_interest_resampled.empty:
-            # Ensure 'open_interest' column exists
             combined_df = combined_df.join(open_interest_resampled, how='outer')
         if not funding_rate_resampled.empty:
-            # Ensure 'funding_rate' column exists
             combined_df = combined_df.join(funding_rate_resampled, how='outer')
 
-        # Reset index to bring 'timestamp' back as a column
         combined_df.reset_index(inplace=True)
 
-        # Reorder columns as specified
-        # combined_df = combined_df[[
-        #     'timestamp',
-        #     'open_timestamp',
-        #     'close_timestamp',
-        #     'open_spot', 'open_perp',
-        #     'high_spot', 'high_perp',
-        #     'low_spot', 'low_perp',
-        #     'close_spot', 'close_perp',
-        #     'volume_total', 'volume_spot', 'volume_perp',
-        #     'buy_volume_total', 'buy_volume_spot', 'buy_volume_perp',
-        #     'sell_volume_total', 'sell_volume_spot', 'sell_volume_perp',
-        #     'trades_total', 'trades_spot', 'trades_perp',
-        #     'buy_trades_total', 'buy_trades_spot', 'buy_trades_perp',
-        #     'sell_trades_total', 'sell_trades_spot', 'sell_trades_perp',
-        #     'open_interest',
-        #     'funding_rate',
-        # ]]
-
-        # Fill NaN values if necessary
         combined_df.fillna(method='ffill', inplace=True)
 
-        # Create Candle objects
         candles = []
         for _, row in combined_df.iterrows():
             candle = dict(
