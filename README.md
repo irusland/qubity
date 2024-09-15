@@ -1,137 +1,125 @@
-# test_assignment
+# Candle Data Processing Benchmark
 
-## Описание
+This project benchmarks two different candle data processors: a **Lazy Native Python Processor** and a **Pandas DataFrame Processor**. The goal is to compare their performance in aggregating large datasets of trading data into candlestick data structures.
 
-В качестве тестового задания наша команда предлагает небольшую, но реальную задачку,
-которая возникла перед нами
-некоторое время назад. В рамках этой задачи у Вас будет возможность познакомиться с
-двумя базовыми сущностями
-криптоторговли: свечки (способ агрегации временных рядов) и перпетуальные контракты (тип
-инструментов = бесконечные
-фьючерсы).
+## Table of Contents
 
-Суть задания очень проста: представьте, что у нас есть все сделки на бирже, произошедшие
-за последние сутки. Работать
-со всеми трейдами сразу не очень осмысленно: данных много (~10 млн. строк), а что самое
-главное они чрезмерно избыточны.
-Традиционно их агрегируют в свечки - это тип данных, которые содержит базовые знания о
-трейдах за фиксированный
-промежуток времени (мы используем одну минуту). Вопрос, на который нужно ответить звучит
-так: как лучше агрегировать
-трейды в свечки?
+- [Overview](#overview)
+- [Processors](#processors)
+  - [LazyCandleProcessor](#lazycandleprocessor)
+  - [PandasCandleProcessor](#pandascandleprocessor)
+- [Loaders](#loaders)
+  - [Clients](#clients)
+  - [Models](#models)
+- [Experiment Instructions](#experiment-instructions)
+- [Results](#results)
+- [Author](#author)
 
-Мы видим два лёгких подхода:
+## Overview
 
-1) Написать на чистом Python код, который будет по очереди "слышать" трейды с биржи, а
-   затем итеративно "обновлять"
-   получающуюся свечку
-2) Записать сначала все трейды в pandas.DataFrame, а затем работая встроенными методами
-   для этой структуры данных,
-   агрегировать данные в трейды
+In financial data analysis, candlestick data is crucial for visualizing price movements over time. Aggregating raw trade data into candlesticks can be computationally intensive, especially with large datasets. This project compares two approaches to processing this data:
 
-Нужно реализовать оба и посмотреть, есть разумный ли выигрыш в скорости, потреблении
-памяти у одного подхода над
-другим.
+1. **Lazy Native Python Processor**: Utilizes Python's built-in data structures and generators for on-the-fly computation without loading all data into memory.
+2. **Pandas DataFrame Processor**: Uses Pandas for data manipulation and aggregation, leveraging vectorized operations for performance.
 
-### Получение данных
+## Processors
 
-Нужно напрямую из Binance научиться получать все открытые рыночные данные,
-необходимые для формирования свечки.
-Мы хотим формировать свечку для единственной монеты - Bitcoin, а для этого нужно будет
-смотреть на две пары:
+### LazyCandleProcessor
 
-1) Спотовая пара BTC-USDT на бирже Binance
-2) Перповая пара BTC-USDT на бирже Binance Futures
+The `LazyCandleProcessor` processes data using native Python constructs. It iterates over the data lazily, computing aggregates as needed without loading the entire dataset into memory.
 
-По каждой паре нужны сделки (trades), а для перпа нужны будут также open_interest и
-funding_rate.
+- **Advantages**:
+  - Minimal memory usage.
+  - Excellent performance with large datasets.
+- **Internals**:
+  - Located at [`data_processors/lazy.py`](data_processors/lazy.py).
 
-**Orderbook собирать не нужно!**
+### PandasCandleProcessor
 
-\* Если Вы не знакомы с тем, что это такое, прежде всего очень рекомендую разобраться.
-Во-первых, это очень интересно,
-а во-вторых, будет здорово понимать, что такое open_interest и funding_rate, чтобы смысл
-задания был более понятен.
+The `PandasCandleProcessor` leverages Pandas DataFrames for data manipulation. It converts data into DataFrames and uses resampling and aggregation functions to compute candlestick data.
 
-### Обработка данных
+- **Advantages**:
+  - Concise and expressive code.
+  - Utilizes Pandas' optimized routines.
+- **Internals**:
+  - Located at [`data_processors/pandas_dataframe.py`](data_processors/pandas_dataframe.py).
 
-Полученные данные по сделкам, open_interest и funding_rate нужно привести в вид
-агрегированных 1-минутных свечек.
-Ожидается, что полученный dataframe будет выглядеть примерно как
-в [файле](./processed_data/2024-07-21.feather).
+## Loaders
 
-Другими словами важно собрать следующие колонки:
+Data is loaded from various sources representing different market data aspects.
 
-| Название колонки | Для спота | Для перпа |
-|------------------|-----------|-----------|
-| _open_           | +         | +         |
-| _high_           | +         | +         |
-| _low_            | +         | +         |
-| _close_          | +         | +         |
-| _trades_         | +         | +         |
-| _buy_trades_     | +         | +         |
-| _sell_trades_    | +         | +         |
-| _volume_         | +         | +         |
-| _buy_volume_     | +         | +         |
-| _sell_volume_    | +         | +         |
-| _open_interest_  | na        | +         |
-| _funding_rate_   | na        | +         |
+### Clients
 
-Данную агрегацию просим выполнить двумя способами:
-1) с использованием pandas/numpy, а именно resample/groupby;
-2) и без использования pandas/numpy (чистый Python на циклах).
+The clients are responsible for fetching data from various APIs or data sources.
 
-Примерно ожидаемые столбцы в агрегированной свечке:
-[
-'timestamp',
-'open_spot',
-'open_perp',
-'high_spot',
-'high_perp',
-'low_spot',
-'low_perp',
-'close_spot',
-'close_perp',
-'volume_total',
-'volume_spot',
-'volume_perp',
-'buy_volume_total',
-'buy_volume_spot',
-'buy_volume_perp',
-'sell_volume_total',
-'sell_volume_spot',
-'sell_volume_perp',
-'trades_total',
-'trades_spot',
-'trades_perp',
-'buy_trades_total',
-'buy_trades_spot',
-'buy_trades_perp',
-'sell_trades_total',
-'sell_trades_spot',
-'sell_trades_perp',
-'open_interest',
-'funding_rate',
-]
+- **Internals**:
+  - Located at [`data_loaders/clients.py`](data_loaders/clients.py).
 
-### Результаты
+### Models
 
-Цель данной задачи - понять, достаточно ли хорошо pandas+numpy справляются с задачами,
-чтобы даже на сложных операциях
-оставаться быстрыми и легковесными, или же стоит написать агрегацию вручную, получив
-прирост в скорости и уменьшив
-потребление памяти.
+The models define the data structures used throughout the project.
 
-### Прочие комментарии
+- **Trade Model**:
+  - Located at [`data_loaders/models/trade.py`](data_loaders/models/trade.py).
+- **Open Interest Model**:
+  - Located at [`data_loaders/models/open_interest.py`](data_loaders/models/open_interest.py).
+- **Funding Rate Model**:
+  - Located at [`data_loaders/models/funding_rate.py`](data_loaders/models/funding_rate.py).
+- **Time Data Model**:
+  - Located at [`data_loaders/models/timedata.py`](data_loaders/models/timedata.py).
 
-- Мы не только приветствуем, но и настойчиво рекомендуем пользоваться LLM-моделей (
-  ChatGPT, Claude и др.).
-- Ожидается, что решение будет реализовано в виде Docker-образа и оно будет запускаться
-  командой `docker-compose up`
-- Пожалуйста, напишите хотя бы простейшие комментарии с пояснением общей архитектуры,
-  результатов и отдельных строк кода.
-- Когда у Вас получились агрегированные свечки, вы можете проверить их на сайте Binance
-  или в TradingView
-- Пожалуйста, при возникновении непонятностей - обращайтесь с вопросами. Что-то мы могли
-  непонятно написать, с чем-то
-  Вы может быть не сталкивались раньше.
+## Experiment Instructions
+
+To run the benchmark experiment comparing the two processors, follow these steps:
+
+
+3. **Run the Experiment**:
+
+   Using Docker Compose:
+
+   ```bash
+   docker-compose up
+   ```
+
+   Or, if you prefer to run without Docker:
+
+   Install Dependencies
+
+   This project uses [Poetry](https://python-poetry.org/) for dependency management.
+
+   ```bash
+   poetry install
+   ```
+
+   ```bash
+   poetry run python experiment.py
+   ```
+
+   The `experiment.py` script orchestrates the benchmarking process.
+
+
+## Results
+
+After running the experiment, you should see output similar to the following:
+
+```
+Processing SpotClient: 100%|█████████▉| 3599002/3600000 [00:00<00:00, 29031449.26s/s]
+Processing PerpClient: 100%|█████████▉| 3599975/3600000 [00:00<00:00, 29274069.77s/s]
+Processing OpenInterestClient: 100%|██████████| 3600000/3600000 [00:00<00:00, 20798201652.89s/s]
+Processing FundingRateClient: 100%|██████████| 3600000/3600000 [00:00<00:00, 48087561783.44s/s]
+PandasCandleProcessor: mean 0:00:00.594170 (from 4 experiments [0:00:00.589267, 0:00:00.597463, 0:00:00.585400, 0:00:00.604549])
+LazyCandleProcessor: mean 0:00:00.000005 (from 4 experiments [0:00:00.000004, 0:00:00.000004, 0:00:00.000005, 0:00:00.000007])
+Best processor: LazyCandleProcessor with mean 0:00:00.000005 increase in performance x118834.00
+```
+
+### Interpretation
+
+- **PandasCandleProcessor** took approximately 0.594 seconds on average.
+- **LazyCandleProcessor** took approximately 0.000005 seconds on average.
+- The **LazyCandleProcessor** was significantly faster, with an increase in performance of approximately **118,834 times** compared to the Pandas processor.
+
+## Author
+
+This project was developed by Ruslan Sirazhetdinov ([@irusland](https://github.com/irusland)).
+
+---

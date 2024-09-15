@@ -38,6 +38,7 @@ now = datetime(
 start = now - timedelta(days=1)
 # end = start + timedelta(days=1)
 end = start + timedelta(minutes=2)
+# end = start + timedelta(hours=1)
 
 # warmup caches
 for processor in (pandas_processor, lazy_processor):
@@ -54,6 +55,7 @@ for experiment in range(EXPERIMENT_COUNT):
         times = results.get(processor, [])
         times.append(elapsed)
         results[processor] = times
+
 
 def mean_timedelta(timedelta_list: list[timedelta]) -> timedelta:
     if not timedelta_list:
