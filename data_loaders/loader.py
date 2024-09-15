@@ -37,7 +37,7 @@ class Loader(ILoader[TData]):
         current_timestamp = start_timestamp
         end_timestamp = to_timestamp(end_time)
         current_time = start_time
-        with tqdm.tqdm(total=end_timestamp-start_timestamp, desc=f"Processing {data_client.__class__.__name__}", unit="s") as pbar:
+        with tqdm.tqdm(total=end_timestamp-start_timestamp, desc=f"Processing {self._data_client.__class__.__name__}", unit="s") as pbar:
             is_timestamp_changed = True
 
             yield from self.load_by_timestamp(
@@ -68,9 +68,11 @@ class Loader(ILoader[TData]):
                 )
 
                 is_timestamp_changed = False
+                yielded = False
                 for data in timed_data:
+                    yielded = True
                     yield data
-                if data.timestamp > current_time:
+                if yielded and data.timestamp > current_time:
                     is_timestamp_changed = True
                     current_time = data.timestamp
                     current_timestamp = to_timestamp(current_time)
@@ -82,20 +84,6 @@ class Loader(ILoader[TData]):
                 sleep(42)
             except KeyboardInterrupt:
                 break
-
-
-def peek_and_iterate(iterator):
-    iterator = iter(iterator)
-
-    # Peek one element
-    try:
-        first_element = next(iterator)
-    except StopIteration:
-        # Handle the case where the iterator is empty
-        return iter([])  # Return an empty iterator
-
-    # Prepend the first element back to the front of the iterator
-    return itertools.chain([first_element], iterator)
 
 
 if __name__ == '__main__':

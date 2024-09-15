@@ -16,6 +16,11 @@ class CandleFiller:
     def fill_candle_trade(self, data: Trade, candle: Candle):
         self._base_process_candle_trade(data, candle)
 
+        if candle.open_timestamp == data.timestamp:
+            candle.open_spot = data.price
+        if candle.close_timestamp == data.timestamp:
+            candle.close_spot = data.price
+
         candle.high_spot = max(candle.high_spot or data.price, data.price)
         candle.low_spot = min(candle.low_spot or data.price, data.price)
 
@@ -32,6 +37,11 @@ class CandleFiller:
     @fill_candle.register(FutureTrade)
     def fill_candle_future_trade(self, data: Trade, candle: Candle):
         self._base_process_candle_trade(data, candle)
+
+        if candle.open_timestamp == data.timestamp:
+            candle.open_perp = data.price
+        if candle.close_timestamp == data.timestamp:
+            candle.close_perp = data.price
 
         candle.high_perp = max(candle.high_perp or data.price, data.price)
         candle.low_perp = min(candle.low_perp or data.price, data.price)
@@ -71,8 +81,3 @@ class CandleFiller:
         else:
             candle.sell_volume_total = data.quantity if not candle.sell_volume_total else candle.sell_volume_total + data.quantity
             candle.sell_trades_total = 1 if not candle.sell_trades_total else candle.sell_trades_total + 1
-
-        if candle.open_timestamp == data.timestamp:
-            candle.open_spot = data.price
-        if candle.close_timestamp == data.timestamp:
-            candle.close_spot = data.price
