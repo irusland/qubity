@@ -5,14 +5,15 @@ This project benchmarks two different candle data processors: a **Lazy Native Py
 ## Table of Contents
 
 - [Overview](#overview)
+- [Data loading](#data-loading)
+- [Experiment Instructions](#experiment-instructions)
+- [Results](#results)
 - [Processors](#processors)
   - [LazyCandleProcessor](#lazycandleprocessor)
   - [PandasCandleProcessor](#pandascandleprocessor)
 - [Loaders](#loaders)
   - [Clients](#clients)
   - [Models](#models)
-- [Experiment Instructions](#experiment-instructions)
-- [Results](#results)
 - [Author](#author)
 
 ## Overview
@@ -21,52 +22,6 @@ In financial data analysis, candlestick data is crucial for visualizing price mo
 
 1. **Lazy Native Python Processor**: Utilizes Python's built-in data structures and generators for on-the-fly computation without loading all data into memory.
 2. **Pandas DataFrame Processor**: Uses Pandas for data manipulation and aggregation, leveraging vectorized operations for performance.
-
-## Processors
-
-### LazyCandleProcessor
-
-The `LazyCandleProcessor` processes data using native Python constructs. It iterates over the data lazily, computing aggregates as needed without loading the entire dataset into memory.
-
-- **Advantages**:
-  - Minimal memory usage.
-  - Excellent performance with large datasets.
-- **Internals**:
-  - Located at [`data_processors/lazy.py`](data_processors/lazy.py).
-
-### PandasCandleProcessor
-
-The `PandasCandleProcessor` leverages Pandas DataFrames for data manipulation. It converts data into DataFrames and uses resampling and aggregation functions to compute candlestick data.
-
-- **Advantages**:
-  - Concise and expressive code.
-  - Utilizes Pandas' optimized routines.
-- **Internals**:
-  - Located at [`data_processors/pandas_dataframe.py`](data_processors/pandas_dataframe.py).
-
-## Loaders
-
-Data is loaded from various sources representing different market data aspects.
-
-### Clients
-
-The clients are responsible for fetching data from various APIs or data sources.
-
-- **Internals**:
-  - Located at [`data_loaders/clients.py`](data_loaders/clients.py).
-
-### Models
-
-The models define the data structures used throughout the project.
-
-- **Trade Model**:
-  - Located at [`data_loaders/models/trade.py`](data_loaders/models/trade.py).
-- **Open Interest Model**:
-  - Located at [`data_loaders/models/open_interest.py`](data_loaders/models/open_interest.py).
-- **Funding Rate Model**:
-  - Located at [`data_loaders/models/funding_rate.py`](data_loaders/models/funding_rate.py).
-- **Time Data Model**:
-  - Located at [`data_loaders/models/timedata.py`](data_loaders/models/timedata.py).
 
 
 ## Data loading
@@ -132,6 +87,54 @@ Best processor: LazyCandleProcessor with mean 0:00:00.000005 increase in perform
 - **PandasCandleProcessor** took approximately 0.594 seconds on average.
 - **LazyCandleProcessor** took approximately 0.000005 seconds on average.
 - The **LazyCandleProcessor** was significantly faster, with an increase in performance of approximately **118,834 times** compared to the Pandas processor.
+
+
+## Processors
+
+### LazyCandleProcessor
+
+The `LazyCandleProcessor` processes data using native Python constructs. It iterates over the data lazily, computing aggregates as needed without loading the entire dataset into memory.
+
+- **Advantages**:
+  - Minimal memory usage.
+  - Excellent performance with large datasets.
+- **Internals**:
+  - Located at [`data_processors/lazy.py`](data_processors/lazy.py).
+
+### PandasCandleProcessor
+
+The `PandasCandleProcessor` leverages Pandas DataFrames for data manipulation. It converts data into DataFrames and uses resampling and aggregation functions to compute candlestick data.
+
+- **Advantages**:
+  - Concise and expressive code.
+  - Utilizes Pandas' optimized routines.
+- **Internals**:
+  - Located at [`data_processors/pandas_dataframe.py`](data_processors/pandas_dataframe.py).
+
+## Loaders
+
+Data is loaded from various sources representing different market data aspects.
+
+### Clients
+
+The clients are responsible for fetching data from various APIs or data sources.
+
+- **Internals**:
+  - Located at [`data_loaders/clients.py`](data_loaders/clients.py).
+
+### Models
+
+The models define the data structures used throughout the project.
+
+- **Trade Model**:
+  - Located at [`data_loaders/models/trade.py`](data_loaders/models/trade.py).
+- **Open Interest Model**:
+  - Located at [`data_loaders/models/open_interest.py`](data_loaders/models/open_interest.py).
+- **Funding Rate Model**:
+  - Located at [`data_loaders/models/funding_rate.py`](data_loaders/models/funding_rate.py).
+- **Time Data Model**:
+  - Located at [`data_loaders/models/timedata.py`](data_loaders/models/timedata.py).
+
 
 ## Author
 
