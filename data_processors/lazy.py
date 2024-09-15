@@ -137,8 +137,7 @@ if __name__ == '__main__':
         year=2024, month=9, day=13, hour=7, minute=0, second=0, tzinfo=timezone.utc
     )
     start = now - timedelta(days=1)
-    # end = start + timedelta(days=1)
-    end = start + timedelta(minutes=20)
+    end = start + timedelta(days=1)
     candles = processor.process(start_time=start, end_time=end)
 
     fieldnames = list(Candle.__fields__.keys())

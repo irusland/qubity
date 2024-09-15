@@ -68,6 +68,21 @@ The models define the data structures used throughout the project.
 - **Time Data Model**:
   - Located at [`data_loaders/models/timedata.py`](data_loaders/models/timedata.py).
 
+
+## Data loading
+
+Run [`data_loaders/models/timedata.py`](data_processors/lazy.py) to get [`processed_data/result_lazy.csv`](processed_data/result_lazy.csv)
+that looks like this:
+
+```
+timestamp,open_spot,open_perp,high_spot,high_perp,low_spot,low_perp,close_spot,close_perp,volume_total,volume_spot,volume_perp,buy_volume_total,buy_volume_spot,buy_volume_perp,sell_volume_total,sell_volume_spot,sell_volume_perp,trades_total,trades_spot,trades_perp,buy_trades_total,buy_trades_spot,buy_trades_perp,sell_trades_total,sell_trades_spot,sell_trades_perp,open_interest,funding_rate
+2024-09-12 07:00:00+00:00,57948.0,57920.1,58054.0,58025.9,57938.17,57909.2,58038.0,58015.2,797.3490799999998,127.29607999999999,670.0529999999999,493.23056,89.96755999999999,403.26300000000003,304.11852,37.32852,266.78999999999996,7075,3615,3460,4113,2031,2082,2962,1584,1378,87691.653,
+2024-09-12 07:05:00+00:00,58038.0,58015.2,58061.1,58046.7,57876.0,57842.0,57915.31,57882.6,654.47375,30.87775,623.596,296.66839,8.98939,287.679,357.80536,21.88836,335.91700000000003,6095,2494,3601,2381,893,1488,3714,1601,2113,87775.688,
+2024-09-12 07:10:00+00:00,57915.31,57882.6,57980.0,57955.1,57901.99,57872.0,57951.21,57916.1,235.23425000000003,15.16525,220.06900000000002,146.17958000000002,9.970580000000002,136.209,89.05466999999999,5.1946699999999995,83.85999999999999,4518,2332,2186,2625,1376,1249,1893,956,937,87808.426,
+...
+```
+
+
 ## Experiment Instructions
 
 To run the benchmark experiment comparing the two processors, follow these steps:
