@@ -1,6 +1,7 @@
 import csv
+import time
 from datetime import datetime, timedelta, timezone
-from typing import Iterator, Iterable, List
+from typing import Iterator
 
 import binance
 import pandas as pd
@@ -63,7 +64,7 @@ class PandasCandleProcessor:
             return pd.DataFrame(columns=['timestamp'])
         return pd.DataFrame(data)
 
-    def process(self, start_time: datetime, end_time: datetime) -> List[Candle]:
+    def process(self, start_time: datetime, end_time: datetime) -> list[Candle]:
         spot_df = self._get_data_df(start_time, end_time, self._spot_loader)
         perp_df = self._get_data_df(start_time, end_time, self._perp_loader)
         open_interest_df = self._get_data_df(start_time, end_time, self._open_interest_loader)
@@ -186,7 +187,7 @@ class PandasCandleProcessor:
 
         combined_df.reset_index(inplace=True)
 
-        combined_df.fillna(method='ffill', inplace=True)
+        combined_df.ffill(inplace=True)
 
         candles = []
         for _, row in combined_df.iterrows():

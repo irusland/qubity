@@ -1,16 +1,16 @@
 import csv
-import os
+import time
 from datetime import datetime, timedelta, timezone
-from itertools import chain
-from typing import Iterator, Any, Iterable
+from typing import Iterator, Iterable
+
+import binance
 
 from data_loaders.clients import (
     SpotClient, PerpClient, OpenInterestClient,
     FundingRateClient, TData,
 )
 from data_loaders.loader import Loader
-import binance
-from data_loaders.time_conversion import to_timestamp, to_minute_timeframe
+from data_loaders.time_conversion import to_minute_timeframe
 from data_processors.candle_filler import CandleFiller
 from data_processors.models.candles import Candle
 from paths import PROCESSED_DIR
@@ -72,10 +72,17 @@ class LazyCandleProcessor:
         open_interest_iterator = self._get_commit_iterator(start_time, end_time, self._open_interest_loader)
         funding_rate_iterator = self._get_commit_iterator(start_time, end_time, self._funding_rate_loader)
 
-        current_timeframe = to_minute_timeframe(start_time)
-        next_timeframe = to_minute_timeframe(start_time+timedelta(minutes=5))
-        current_candle = Candle(timestamp=current_timeframe)
+        yield from self._fill_candles(
+            end_time, funding_rate_iterator, open_interest_iterator, perp_iterator,
+            spot_iterator, start_time
+        )
 
+    def _fill_candles(
+        self, end_time: datetime, funding_rate_iterator: CommitIterator, open_interest_iterator: CommitIterator, perp_iterator: CommitIterator, spot_iterator: CommitIterator, start_time: datetime
+    ):
+        current_timeframe = to_minute_timeframe(start_time)
+        next_timeframe = to_minute_timeframe(start_time + timedelta(minutes=5))
+        current_candle = Candle(timestamp=current_timeframe)
         while current_timeframe - end_time < timedelta(seconds=1):
             was_filled = False
             was_filled = self._fill_with_iterator(current_candle, current_timeframe, spot_iterator, next_timeframe) or was_filled
@@ -112,12 +119,12 @@ class LazyCandleProcessor:
 
 
 if __name__ == '__main__':
-    candle_filler = CandleFiller()
     client = binance.Client()
     spot_client = SpotClient(client=client)
     perp_client = PerpClient(client=client)
     open_interest_client = OpenInterestClient(client=client)
     funding_rate_client = FundingRateClient(client=client)
+    candle_filler = CandleFiller()
     processor = LazyCandleProcessor(
         spot_client=spot_client,
         perp_client=perp_client,
