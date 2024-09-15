@@ -12,7 +12,7 @@ from binance.exceptions import BinanceAPIException
 from data_loaders.clients import IClient, SpotClient, PerpClient, FundingRateClient, OpenInterestClient
 from data_loaders.models.timedata import TimeData
 from data_loaders.models.trade import Trade
-from data_loaders.paths import DATA_DIR
+from paths import DATA_DIR
 from data_loaders.time_conversion import to_timestamp
 logger = logging.getLogger(__name__)
 TData = TypeVar('TData', bound=TimeData)
@@ -106,9 +106,9 @@ if __name__ == '__main__':
     funding_rate_client = FundingRateClient(client=client)
 
     # now = datetime.now(timezone.utc)
-    now = datetime(year=2024, month=9, day=13, hour=17, minute=0, second=0, tzinfo=timezone.utc)
-    start = now - timedelta(days=1, hours=10)
-    end = start + timedelta(hours=7)
+    now = datetime(year=2024, month=9, day=13, hour=7, minute=0, second=0, tzinfo=timezone.utc)
+    start = now - timedelta(days=1)
+    end = start + timedelta(days=1)
 
     for data_name, data_client in {
         'spot': spot_client,

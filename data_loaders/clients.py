@@ -6,7 +6,7 @@ import binance
 
 from data_loaders.models.funding_rate import FundingRate
 from data_loaders.models.timedata import TimeData
-from data_loaders.models.trade import Trade
+from data_loaders.models.trade import Trade, FutureTrade
 from data_loaders.models.open_interest import OpenInterest, Period
 
 TData = TypeVar('TData', bound=TimeData)
@@ -27,13 +27,13 @@ class SpotClient(IClient[Trade]):
             yield Trade.model_validate(trade)
 
 
-class PerpClient(IClient[Trade]):
+class PerpClient(IClient[FutureTrade]):
     def __init__(self, client: binance.Client):
         self._client = client
 
-    def get(self, symbol: str, start_time: int, end_time: int) -> Iterable[Trade]:
+    def get(self, symbol: str, start_time: int, end_time: int) -> Iterable[FutureTrade]:
         for trade in self._client.futures_aggregate_trades(symbol=symbol, startTime=start_time, endTime=end_time):
-            yield Trade.model_validate(trade)
+            yield FutureTrade.model_validate(trade)
 
 
 class OpenInterestClient(IClient[OpenInterest]):

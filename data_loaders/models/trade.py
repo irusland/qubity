@@ -16,3 +16,7 @@ class Trade(TimeData):
     is_best_price_match: bool = Field(False, alias='M', description='Was the trade the best price match?')
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class FutureTrade(Trade):
+    model_config = ConfigDict(populate_by_name=True)
