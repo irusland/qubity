@@ -1,4 +1,5 @@
 import csv
+import os
 from datetime import datetime, timedelta, timezone
 from itertools import chain
 from typing import Iterator, Any, Iterable
@@ -76,7 +77,6 @@ class LazyCandleProcessor:
         current_candle = Candle(timestamp=current_timeframe)
 
         while current_timeframe - end_time < timedelta(seconds=1):
-            # print(f'processing [{current_candle}, {next_timeframe})')
             was_filled = False
             was_filled = self._fill_with_iterator(current_candle, current_timeframe, spot_iterator, next_timeframe) or was_filled
             was_filled = self._fill_with_iterator(current_candle, current_timeframe, perp_iterator, next_timeframe) or was_filled
@@ -133,7 +133,6 @@ if __name__ == '__main__':
     # end = start + timedelta(days=1)
     end = start + timedelta(minutes=20)
     candles = processor.process(start_time=start, end_time=end)
-
 
     fieldnames = list(Candle.__fields__.keys())
     fieldnames.remove('open_timestamp')
