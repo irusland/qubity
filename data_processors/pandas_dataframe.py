@@ -64,7 +64,7 @@ class PandasCandleProcessor:
             return pd.DataFrame(columns=['timestamp'])
         return pd.DataFrame(data)
 
-    def process(self, start_time: datetime, end_time: datetime) -> list[Candle]:
+    def process(self, start_time: datetime, end_time: datetime) -> pd.DataFrame:
         spot_df = self._get_data_df(start_time, end_time, self._spot_loader)
         perp_df = self._get_data_df(start_time, end_time, self._perp_loader)
         open_interest_df = self._get_data_df(start_time, end_time, self._open_interest_loader)
@@ -189,42 +189,7 @@ class PandasCandleProcessor:
 
         combined_df.ffill(inplace=True)
 
-        candles = []
-        for _, row in combined_df.iterrows():
-            candle = dict(
-                timestamp=row['timestamp'],
-                open_spot=row.get('open_spot'),
-                open_perp=row.get('open_perp'),
-                high_spot=row.get('high_spot'),
-                high_perp=row.get('high_perp'),
-                low_spot=row.get('low_spot'),
-                low_perp=row.get('low_perp'),
-                close_spot=row.get('close_spot'),
-                close_perp=row.get('close_perp'),
-                volume_total=row.get('volume_total'),
-                volume_spot=row.get('volume_spot'),
-                volume_perp=row.get('volume_perp'),
-                buy_volume_total=row.get('buy_volume_total'),
-                buy_volume_spot=row.get('buy_volume_spot'),
-                buy_volume_perp=row.get('buy_volume_perp'),
-                sell_volume_total=row.get('sell_volume_total'),
-                sell_volume_spot=row.get('sell_volume_spot'),
-                sell_volume_perp=row.get('sell_volume_perp'),
-                trades_total=int(row['trades_total']) if pd.notna(row['trades_total']) else None,
-                trades_spot=int(row['trades_spot']) if pd.notna(row['trades_spot']) else None,
-                trades_perp=int(row['trades_perp']) if pd.notna(row['trades_perp']) else None,
-                buy_trades_total=int(row['buy_trades_total']) if pd.notna(row['buy_trades_total']) else None,
-                buy_trades_spot=int(row['buy_trades_spot']) if pd.notna(row['buy_trades_spot']) else None,
-                buy_trades_perp=int(row['buy_trades_perp']) if pd.notna(row['buy_trades_perp']) else None,
-                sell_trades_total=int(row['sell_trades_total']) if pd.notna(row['sell_trades_total']) else None,
-                sell_trades_spot=int(row['sell_trades_spot']) if pd.notna(row['sell_trades_spot']) else None,
-                sell_trades_perp=int(row['sell_trades_perp']) if pd.notna(row['sell_trades_perp']) else None,
-                open_interest=row.get('open_interest'),
-                funding_rate=row.get('funding_rate'),
-            )
-            candles.append(candle)
-
-        return candles
+        return combined_df
 
 
 if __name__ == '__main__':
@@ -246,15 +211,7 @@ if __name__ == '__main__':
     start = now - timedelta(days=1)
     # end = start + timedelta(days=1)
     end = start + timedelta(minutes=20)
-    candles = processor.process(start_time=start, end_time=end)
-
-    fieldnames = list(Candle.__fields__.keys())
-    fieldnames.remove('open_timestamp')
-    fieldnames.remove('close_timestamp')
+    candles: pd.DataFrame = processor.process(start_time=start, end_time=end)
 
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    with open(PROCESSED_DIR / 'result_pandas.csv', mode="w", newline="") as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-
-        writer.writeheader()
-        writer.writerows(candles)
+    candles.to_feather(PROCESSED_DIR / 'result_pandas.feather')
